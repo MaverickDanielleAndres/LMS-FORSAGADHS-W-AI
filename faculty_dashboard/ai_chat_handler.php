@@ -1,6 +1,6 @@
 <?php
 session_start();
-require_once '../config.php';
+header('Content-Type: application/json');
 
 // Security check
 if ($_SESSION['role'] !== 'faculty') {
@@ -11,131 +11,78 @@ if ($_SESSION['role'] !== 'faculty') {
 
 try {
     // Get input data
-    $input = json_decode(file_get_contents('php://input'), true);
+    $input = file_get_contents('php://input');
+    $data = json_decode($input, true);
     
-    if (!$input || empty($input['user_message'])) {
-        throw new Exception('No message provided');
+    if (!$data || json_last_error() !== JSON_ERROR_NONE) {
+        throw new Exception('Invalid JSON data');
     }
     
-    $userMessage = trim($input['user_message']);
-    $task = isset($input['task']) ? $input['task'] : 'chat';
-    
-    // Input validation
-    if (strlen($userMessage) > 2000) {
-        throw new Exception('Message too long. Please limit to 2000 characters.');
-    }
-    
+    $userMessage = trim($data['user_message'] ?? '');
     if (empty($userMessage)) {
-        throw new Exception('Message cannot be empty.');
+        throw new Exception('Empty message');
     }
     
-    // Rate limiting (simple implementation)
-    $facultyId = $_SESSION['fid'];
-    $rateLimitKey = "chat_limit_" . $facultyId;
-    
-    // Check rate limit (allow 20 requests per minute)
-    if (!isset($_SESSION[$rateLimitKey])) {
-        $_SESSION[$rateLimitKey] = ['count' => 0, 'reset_time' => time() + 60];
-    }
-    
-    if (time() > $_SESSION[$rateLimitKey]['reset_time']) {
-        $_SESSION[$rateLimitKey] = ['count' => 0, 'reset_time' => time() + 60];
-    }
-    
-    $_SESSION[$rateLimitKey]['count']++;
-    
-    if ($_SESSION[$rateLimitKey]['count'] > 20) {
-        throw new Exception('Rate limit exceeded. Please wait a moment before sending another message.');
-    }
-    
-    // Prepare API request
+    // Prepare API call to Python service
     $apiUrl = 'http://localhost:5000/chat';
     $ch = curl_init($apiUrl);
     
-    $postData = [
-        'user_message' => $userMessage,
-        'task' => $task,
-        'faculty_id' => $facultyId
-    ];
+    curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+    curl_setopt($ch, CURLOPT_POST, true);
+    curl_setopt($ch, CURLOPT_TIMEOUT, 60);
+    curl_setopt($ch, CURLOPT_CONNECTTIMEOUT, 10);
+    curl_setopt($ch, CURLOPT_HTTPHEADER, ['Content-Type: application/json']);
     
-    curl_setopt_array($ch, [
-        CURLOPT_RETURNTRANSFER => true,
-        CURLOPT_POST => true,
-        CURLOPT_POSTFIELDS => json_encode($postData),
-        CURLOPT_HTTPHEADER => [
-            'Content-Type: application/json',
-            'Content-Length: ' . strlen(json_encode($postData))
-        ],
-        CURLOPT_TIMEOUT => 60,
-        CURLOPT_CONNECTTIMEOUT => 10,
-        CURLOPT_SSL_VERIFYPEER => false,
-        CURLOPT_SSL_VERIFYHOST => false
+    $payload = json_encode([
+        'user_message' => $userMessage,
+        'faculty_id' => $_SESSION['fid'],
+        'timestamp' => date('Y-m-d H:i:s')
     ]);
+    
+    curl_setopt($ch, CURLOPT_POSTFIELDS, $payload);
     
     $response = curl_exec($ch);
     $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
-    $error = curl_error($ch);
+    $curlError = curl_error($ch);
     
     curl_close($ch);
     
-    if ($error) {
-        throw new Exception("Connection error: " . $error);
+    if ($curlError) {
+        throw new Exception("AI service unavailable: $curlError");
     }
     
     if ($httpCode !== 200) {
-        $errorMsg = "AI service unavailable (HTTP $httpCode)";
-        if ($response) {
-            $errorData = json_decode($response, true);
-            if ($errorData && isset($errorData['error'])) {
-                $errorMsg .= ": " . $errorData['error'];
-            }
-        }
-        throw new Exception($errorMsg);
+        throw new Exception("AI service error (HTTP $httpCode)");
     }
     
     $responseData = json_decode($response, true);
-    
     if (!$responseData) {
         throw new Exception("Invalid response from AI service");
     }
     
-    // Validate response
-    if (empty($responseData['response'])) {
-        throw new Exception("Empty response from AI service");
+    if (isset($responseData['error'])) {
+        throw new Exception($responseData['error']);
     }
     
-    // Log the interaction (optional - for debugging)
-    error_log("AI Chat - Faculty: $facultyId, Message: " . substr($userMessage, 0, 100) . "..., Response Length: " . strlen($responseData['response']));
-    
-    // Return successful response
-    header('Content-Type: application/json');
     echo json_encode([
-        'response' => $responseData['response'],
-        'timestamp' => date('Y-m-d H:i:s'),
-        'message_length' => strlen($responseData['response'])
+        'response' => $responseData['response'] ?? 'I apologize, but I encountered an issue processing your request.',
+        'timestamp' => date('Y-m-d H:i:s')
     ]);
     
 } catch (Exception $e) {
     error_log("AI Chat Handler Error: " . $e->getMessage());
     
-    // Return user-friendly error message
-    $errorResponse = [
-        'error' => $e->getMessage(),
-        'response' => "I'm sorry, I'm having trouble processing your request right now. Please try again in a moment.",
-        'timestamp' => date('Y-m-d H:i:s'),
-        'service_status' => 'error'
+    // Provide fallback response
+    $fallbackResponses = [
+        "I'm currently experiencing technical difficulties. Please try again in a moment.",
+        "Sorry, I'm having trouble connecting to the AI service. Please ensure it's running and try again.",
+        "I apologize for the inconvenience. Please check your connection and try again."
     ];
     
-    // Set appropriate HTTP status
-    if (strpos($e->getMessage(), 'Rate limit') !== false) {
-        http_response_code(429);
-    } elseif (strpos($e->getMessage(), 'Unauthorized') !== false) {
-        http_response_code(403);
-    } else {
-        http_response_code(500);
-    }
-    
-    header('Content-Type: application/json');
-    echo json_encode($errorResponse);
+    echo json_encode([
+        'response' => $fallbackResponses[array_rand($fallbackResponses)],
+        'error' => $e->getMessage(),
+        'timestamp' => date('Y-m-d H:i:s')
+    ]);
 }
 ?>

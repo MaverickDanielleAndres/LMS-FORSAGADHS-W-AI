@@ -1,5 +1,6 @@
 <?php
 session_start();
+header('Content-Type: application/json');
 require_once '../config.php';
 
 // Security check
@@ -10,14 +11,14 @@ if ($_SESSION['role'] !== 'faculty') {
 }
 
 try {
-    $subjectCode = isset($_GET['subject_code']) ? intval($_GET['subject_code']) : 0;
-    $facultyId = isset($_GET['faculty_id']) ? intval($_GET['faculty_id']) : 0;
+    $subjectCode = intval($_GET['subject_code'] ?? 0);
+    $facultyId = intval($_GET['faculty_id'] ?? 0);
     
-    if (!$subjectCode) {
-        throw new Exception('Subject code is required');
+    if (!$subjectCode || !$facultyId) {
+        throw new Exception('Missing required parameters');
     }
     
-    // Verify that the faculty owns this subject
+    // Verify faculty has access to this subject
     $stmt = $conn->prepare("SELECT COUNT(*) FROM subjectmaster WHERE SubjectCode = ? AND SubjectFacultyId = ?");
     $stmt->bind_param('ii', $subjectCode, $facultyId);
     $stmt->execute();
@@ -29,12 +30,10 @@ try {
     $stmt->close();
     
     // Get materials for this subject
-    $stmt = $conn->prepare("
-        SELECT MaterialId, SubjectUnitName, MaterialFile, MaterialUploadDate 
-        FROM studymaterialmaster 
-        WHERE SubjectCode = ? 
-        ORDER BY SubjectUnitNo ASC, MaterialUploadDate DESC
-    ");
+    $stmt = $conn->prepare("SELECT MaterialId, SubjectUnitName, MaterialFile, MaterialUploadDate 
+                           FROM studymaterialmaster 
+                           WHERE SubjectCode = ? 
+                           ORDER BY SubjectUnitNo ASC, MaterialUploadDate DESC");
     $stmt->bind_param('i', $subjectCode);
     $stmt->execute();
     $result = $stmt->get_result();
@@ -45,7 +44,7 @@ try {
             'MaterialId' => $row['MaterialId'],
             'SubjectUnitName' => $row['SubjectUnitName'],
             'MaterialFile' => $row['MaterialFile'],
-            'MaterialUploadDate' => $row['MaterialUploadDate']
+            'UploadDate' => $row['MaterialUploadDate']
         ];
     }
     $stmt->close();
@@ -58,7 +57,6 @@ try {
     
 } catch (Exception $e) {
     error_log("Get Materials Error: " . $e->getMessage());
-    http_response_code(400);
     echo json_encode([
         'success' => false,
         'error' => $e->getMessage(),

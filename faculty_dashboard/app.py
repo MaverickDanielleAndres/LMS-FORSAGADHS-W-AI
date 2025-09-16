@@ -20,13 +20,9 @@ app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 app.config['MAX_CONTENT_LENGTH'] = MAX_FILE_SIZE
 
 # API Configuration
-
-from dotenv import load_dotenv
-load_dotenv()  # Load values from .env file
-
-TOGETHER_API_KEY = os.getenv("TOGETHER_API_KEY")
-TOGETHER_API_URL = os.getenv("TOGETHER_API_URL", "https://api.together.xyz/v1/chat/completions")
-MODEL_NAME = os.getenv("MODEL_NAME", "meta-llama/Llama-3.3-70B-Instruct-Turbo-Free")
+TOGETHER_API_KEY = "f847f9f613890b706171915623e44575b7fe75a3d36612d7f325e3604fc4252a"
+TOGETHER_URL = "https://api.together.xyz/v1/chat/completions"
+MODEL = "meta-llama/Llama-3.3-70B-Instruct-Turbo-Free"
 
 # Logging setup
 logging.basicConfig(level=logging.INFO)
@@ -260,12 +256,13 @@ def generate_questions():
         return jsonify({
             "response": ai_response,
             "settings": settings,
-            "content_length": len(content) if content else 0
+            "content_length": len(content) if content else 0,
+            "success": True
         })
         
     except Exception as e:
         logger.error(f"Error in generate_questions: {str(e)}")
-        return jsonify({"error": str(e)}), 500
+        return jsonify({"error": str(e), "success": False}), 500
 
 def validate_response_quality(response, expected_questions):
     """Validate that the response contains the expected number of questions"""

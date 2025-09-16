@@ -1,4 +1,3 @@
-
 <?php
 session_start();
 error_reporting(E_ALL ^ E_WARNING);
@@ -160,11 +159,194 @@ $success = isset($_GET['success']) ? urldecode($_GET['success']) : '';
             0% { transform: rotate(0deg); }
             100% { transform: rotate(360deg); }
         }
+
+        /* Enhanced Questions List Styles */
+        .generated-questions-section {
+            background: #fff;
+            border-radius: 12px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+            margin-bottom: 2rem;
+            display: none;
+        }
+        .questions-header {
+            background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+            color: #fff;
+            padding: 1.5rem;
+            border-radius: 12px 12px 0 0;
+        }
+        .questions-list {
+            padding: 1.5rem;
+        }
+        .question-item {
+            background: #f8f9fa;
+            border: 2px solid #e9ecef;
+            border-radius: 10px;
+            margin-bottom: 1rem;
+            padding: 1.5rem;
+            transition: all 0.3s ease;
+            position: relative;
+        }
+        .question-item:hover {
+            border-color: #667eea;
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.15);
+        }
+        .question-header {
+            display: flex;
+            justify-content: between;
+            align-items: flex-start;
+            margin-bottom: 1rem;
+        }
+        .question-number {
+            background: #667eea;
+            color: #fff;
+            padding: 0.5rem 1rem;
+            border-radius: 20px;
+            font-weight: bold;
+            font-size: 0.9rem;
+        }
+        .question-points {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            margin-left: auto;
+        }
+        .question-text {
+            width: 100%;
+            border: 1px solid #dee2e6;
+            border-radius: 6px;
+            padding: 0.75rem;
+            margin-bottom: 1rem;
+            font-size: 1rem;
+            resize: vertical;
+            min-height: 60px;
+        }
+        .choices-container {
+            margin-bottom: 1rem;
+        }
+        .choice-item {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            margin-bottom: 0.5rem;
+            padding: 0.5rem;
+            background: #fff;
+            border-radius: 6px;
+            border: 1px solid #e9ecef;
+            transition: background-color 0.2s;
+        }
+        .choice-item:hover {
+            background: #f8f9fa;
+        }
+        .choice-letter {
+            min-width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            font-size: 0.9rem;
+            transition: all 0.2s;
+        }
+        .choice-letter.correct {
+            background: #28a745;
+            color: #fff;
+        }
+        .choice-letter.incorrect {
+            background: #6c757d;
+            color: #fff;
+        }
+        .choice-text {
+            flex: 1;
+            border: none;
+            background: transparent;
+            padding: 0.5rem;
+            font-size: 0.95rem;
+        }
+        .choice-text:focus {
+            outline: none;
+            background: #fff;
+            border: 1px solid #667eea;
+            border-radius: 4px;
+        }
+        .correct-radio {
+            margin-left: auto;
+        }
+        .question-actions {
+            display: flex;
+            justify-content: flex-end;
+            gap: 0.5rem;
+            margin-top: 1rem;
+            padding-top: 1rem;
+            border-top: 1px solid #e9ecef;
+        }
+        .btn-sm {
+            padding: 0.25rem 0.75rem;
+            font-size: 0.875rem;
+        }
+        .generation-actions {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-top: 1.5rem;
+            padding-top: 1.5rem;
+            border-top: 2px solid #e9ecef;
+        }
+        .questions-summary {
+            display: flex;
+            gap: 1rem;
+        }
+        .summary-badge {
+            background: #667eea;
+            color: #fff;
+            padding: 0.5rem 1rem;
+            border-radius: 20px;
+            font-weight: 500;
+            font-size: 0.9rem;
+        }
+        .loading-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.5);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 9999;
+            display: none;
+        }
+        .loading-content {
+            background: #fff;
+            padding: 2rem;
+            border-radius: 10px;
+            text-align: center;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+        }
+        .loading-spinner {
+            width: 40px;
+            height: 40px;
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #667eea;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 1rem;
+        }
     </style>
 </head>
 <body>
     <?php $nav_role = "Quiz"; include_once("nav.php"); ?>
     
+    <!-- Loading Overlay -->
+    <div class="loading-overlay" id="loadingOverlay">
+        <div class="loading-content">
+            <div class="loading-spinner"></div>
+            <h5>Generating Questions...</h5>
+            <p class="text-muted">Please wait while AI creates your quiz questions</p>
+        </div>
+    </div>
+
     <div class="main-content">
         <div class="container-fluid">
             <div class="row justify-content-center">
@@ -296,19 +478,20 @@ $success = isset($_GET['success']) ? urldecode($_GET['success']) : '';
                                         </select>
                                     </div>
                                 </div>
+
                                 <!-- Existing Material Selection -->
-<div class="mb-4">
-    <h5><i class="fe fe-book me-2"></i>Select Existing Material</h5>
-    <div class="row">
-        <div class="col-md-12">
-            <label for="existingMaterial" class="form-label">Choose from your uploaded materials</label>
-            <select class="form-select" id="existingMaterial">
-                <option value="">Select a material...</option>
-            </select>
-        </div>
-    </div>
-    <small class="text-muted">Materials will be loaded when you select a subject</small>
-</div>
+                                <div class="mb-4">
+                                    <h5><i class="fe fe-book me-2"></i>Select Existing Material</h5>
+                                    <div class="row">
+                                        <div class="col-md-12">
+                                            <label for="existingMaterial" class="form-label">Choose from your uploaded materials</label>
+                                            <select class="form-select" id="existingMaterial">
+                                                <option value="">Select a material...</option>
+                                            </select>
+                                        </div>
+                                    </div>
+                                    <small class="text-muted">Materials will be loaded when you select a subject</small>
+                                </div>
 
                                 <!-- File Upload -->
                                 <div class="mb-4">
@@ -330,7 +513,8 @@ $success = isset($_GET['success']) ? urldecode($_GET['success']) : '';
                                     <div class="row">
                                         <div class="col-md-3">
                                             <label for="numQuestions" class="form-label">Number of Questions</label>
-                                            <input type="number" class="form-control" id="numQuestions" min="5" max="50" value="10">
+                                            <input type="number" class="form-control" id="numQuestions" min="1" max="20" value="5">
+                                            <small class="text-muted">Generate 1-20 questions at a time</small>
                                         </div>
                                         <div class="col-md-3">
                                             <label for="difficulty" class="form-label">Difficulty Level</label>
@@ -361,41 +545,47 @@ $success = isset($_GET['success']) ? urldecode($_GET['success']) : '';
                                 <!-- Generate Button -->
                                 <div class="d-flex justify-content-end">
                                     <button type="button" class="btn btn-primary" id="generateBtn">
-                                        <span class="spinner-border spinner-border-sm loading-spinner" id="generateSpinner" role="status" aria-hidden="true"></span>
-                                        <i class="fe fe-zap me-2"></i>Generate Quiz
+                                        <i class="fe fe-zap me-2"></i>Generate Questions
                                     </button>
                                 </div>
                             </form>
                         </div>
                     </div>
 
-                    <!-- Generated Questions Display -->
-                    <div class="card" id="questionsCard" style="display: none;">
-                        <div class="card-header d-flex justify-content-between align-items-center">
-                            <h4 class="card-header-title mb-0"><i class="fe fe-list me-2"></i>Generated Questions</h4>
-                            <div>
-                                <span class="badge bg-primary" id="questionCount">0 Questions</span>
-                                <span class="badge bg-success" id="totalPoints">0 Points</span>
+                    <!-- Generated Questions Section -->
+                    <div class="generated-questions-section" id="questionsSection">
+                        <div class="questions-header">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <div>
+                                    <h4 class="mb-0"><i class="fe fe-list me-2"></i>Generated Questions</h4>
+                                    <small>Review and edit your questions below</small>
+                                </div>
+                                <div class="questions-summary">
+                                    <span class="summary-badge" id="questionCount">0 Questions</span>
+                                    <span class="summary-badge" id="totalPoints">0 Points</span>
+                                </div>
                             </div>
                         </div>
-                        <div class="card-body">
-                            <div id="questionsContainer"></div>
-                            <div class="d-flex justify-content-between mt-3">
-                                <div>
-                                    <button type="button" class="btn btn-outline-secondary" id="regenerateBtn">
-                                        <i class="fe fe-refresh-cw me-2"></i>Regenerate
-                                    </button>
-                                </div>
-                                <div>
-                                    <button type="button" class="btn btn-secondary me-2" id="cancelBtn">Cancel</button>
-                                    <button type="button" class="btn btn-success" id="saveBtn">
-                                        <span class="spinner-border spinner-border-sm loading-spinner" id="saveSpinner" role="status" aria-hidden="true"></span>
-                                        <i class="fe fe-save me-2"></i>Save Quiz
-                                    </button>
-                                </div>
+                        <div class="questions-list" id="questionsList">
+                            <!-- Questions will be dynamically inserted here -->
+                        </div>
+                        <div class="generation-actions">
+                            <div>
+                                <button type="button" class="btn btn-outline-primary" id="generateMoreBtn">
+                                    <i class="fe fe-plus me-2"></i>Generate More Questions
+                                </button>
+                                <button type="button" class="btn btn-outline-secondary" id="clearAllBtn">
+                                    <i class="fe fe-trash-2 me-2"></i>Clear All
+                                </button>
+                            </div>
+                            <div>
+                                <button type="button" class="btn btn-success btn-lg" id="saveQuizBtn">
+                                    <i class="fe fe-save me-2"></i>Save Quiz to Database
+                                </button>
                             </div>
                         </div>
                     </div>
+
                 </div>
             </div>
         </div>
@@ -410,10 +600,12 @@ $success = isset($_GET['success']) ? urldecode($_GET['success']) : '';
 
         let generatedQuestions = [];
         let facultyId = <?= json_encode($fid) ?>;
+        let questionIdCounter = 1;
 
         function initializeApp() {
             setupEventListeners();
             setupFileUpload();
+            updateQuestionsDisplay();
         }
 
         function setupEventListeners() {
@@ -436,29 +628,21 @@ $success = isset($_GET['success']) ? urldecode($_GET['success']) : '';
             
             aiSendBtn.addEventListener('click', sendAIMessage);
             
-            // Generate button
-            document.getElementById('generateBtn').addEventListener('click', generateQuiz);
+            // Generate buttons
+            document.getElementById('generateBtn').addEventListener('click', generateQuestions);
+            document.getElementById('generateMoreBtn').addEventListener('click', generateQuestions);
             
-            // Regenerate button
-            document.getElementById('regenerateBtn').addEventListener('click', regenerateQuiz);
-            
-            // Save button
-            document.getElementById('saveBtn').addEventListener('click', saveQuiz);
-            
-            // Cancel button
-            document.getElementById('cancelBtn').addEventListener('click', function() {
-                document.getElementById('questionsCard').style.display = 'none';
-            });
+            // Action buttons
+            document.getElementById('clearAllBtn').addEventListener('click', clearAllQuestions);
+            document.getElementById('saveQuizBtn').addEventListener('click', saveQuizToDatabase);
 
-            // Existing material selection
+            // Material selection handlers
             document.getElementById('existingMaterial').addEventListener('change', function() {
                 if (this.value) {
-                    // Clear file selection when material is selected
                     clearFileSelection();
                 }
             });
 
-            // File input change should clear material selection
             document.getElementById('fileInput').addEventListener('change', function() {
                 if (this.files.length > 0) {
                     document.getElementById('existingMaterial').value = '';
@@ -632,27 +816,16 @@ $success = isset($_GET['success']) ? urldecode($_GET['success']) : '';
             document.getElementById('fileInfo').style.display = 'none';
         }
 
-        async function generateQuiz() {
+        async function generateQuestions() {
             if (!validateForm()) return;
             
-            const generateBtn = document.getElementById('generateBtn');
-            const generateSpinner = document.getElementById('generateSpinner');
-            
-            generateBtn.disabled = true;
-            generateSpinner.style.display = 'inline-block';
+            showLoading(true);
             
             try {
                 const formData = new FormData();
                 
                 // Add all form data
                 formData.append('title', document.getElementById('quizTitle').value);
-                formData.append('description', document.getElementById('quizDescription').value);
-                formData.append('instructions', document.getElementById('quizInstructions').value);
-                formData.append('subject', document.getElementById('quizSubject').value);
-                formData.append('branch', document.getElementById('quizBranch').value);
-                formData.append('semester', document.getElementById('quizSemester').value);
-                formData.append('duration', document.getElementById('quizDuration').value);
-                formData.append('deadline', document.getElementById('quizDeadline').value);
                 formData.append('numQuestions', document.getElementById('numQuestions').value);
                 formData.append('difficulty', document.getElementById('difficulty').value);
                 formData.append('questionType', document.getElementById('questionType').value);
@@ -675,18 +848,24 @@ $success = isset($_GET['success']) ? urldecode($_GET['success']) : '';
                 
                 const data = await response.json();
                 
-                if (data.response) {
-                    parseAndDisplayQuestions(data.response);
+                if (data.success !== false && data.response) {
+                    const newQuestions = parseAIResponse(data.response);
+                    if (newQuestions.length > 0) {
+                        generatedQuestions = generatedQuestions.concat(newQuestions);
+                        updateQuestionsDisplay();
+                        showSuccessMessage(`Generated ${newQuestions.length} new questions!`);
+                    } else {
+                        throw new Error('No valid questions could be parsed from the AI response');
+                    }
                 } else {
                     throw new Error(data.error || 'Generation failed');
                 }
                 
             } catch (error) {
                 console.error('Generate error:', error);
-                alert('Error generating quiz: ' + error.message);
+                showErrorMessage('Error generating questions: ' + error.message);
             } finally {
-                generateBtn.disabled = false;
-                generateSpinner.style.display = 'none';
+                showLoading(false);
             }
         }
 
@@ -696,30 +875,21 @@ $success = isset($_GET['success']) ? urldecode($_GET['success']) : '';
             const numQuestions = parseInt(document.getElementById('numQuestions').value);
             
             if (!title) {
-                alert('Please enter a quiz title');
+                showErrorMessage('Please enter a quiz title');
                 return false;
             }
             
             if (!subject) {
-                alert('Please select a subject');
+                showErrorMessage('Please select a subject');
                 return false;
             }
             
-            if (!numQuestions || numQuestions < 1 || numQuestions > 50) {
-                alert('Please enter a valid number of questions (1-50)');
+            if (!numQuestions || numQuestions < 1 || numQuestions > 20) {
+                showErrorMessage('Please enter a valid number of questions (1-20)');
                 return false;
             }
             
             return true;
-        }
-
-        function parseAndDisplayQuestions(aiResponse) {
-            generatedQuestions = parseAIResponse(aiResponse);
-            if (generatedQuestions.length === 0) {
-                alert('No valid questions could be parsed from the AI response. Please try again.');
-                return;
-            }
-            displayQuestions();
         }
 
         function parseAIResponse(response) {
@@ -749,6 +919,7 @@ $success = isset($_GET['success']) ? urldecode($_GET['success']) : '';
                 if (questionMatch) {
                     if (currentQuestion) questions.push(currentQuestion);
                     currentQuestion = {
+                        id: 'q_' + questionIdCounter++,
                         number: parseInt(questionMatch[1]),
                         text: questionMatch[2].replace(/\(Points:.*?\)$/i, '').trim(),
                         choices: [],
@@ -776,113 +947,140 @@ $success = isset($_GET['success']) ? urldecode($_GET['success']) : '';
                     q.choices.forEach(choice => {
                         choice.isCorrect = choice.letter === correctLetter;
                     });
-                    q.correctAnswers = [correctLetter];
                 }
             });
             
             return questions;
         }
 
-        function displayQuestions() {
-            const questionsCard = document.getElementById('questionsCard');
-            const questionsContainer = document.getElementById('questionsContainer');
+        function updateQuestionsDisplay() {
+            const questionsSection = document.getElementById('questionsSection');
+            const questionsList = document.getElementById('questionsList');
             const questionCount = document.getElementById('questionCount');
             const totalPoints = document.getElementById('totalPoints');
             
-            let totalPointsValue = generatedQuestions.reduce((sum, q) => sum + q.points, 0);
+            if (generatedQuestions.length === 0) {
+                questionsSection.style.display = 'none';
+                return;
+            }
             
+            questionsSection.style.display = 'block';
+            
+            const totalPointsValue = generatedQuestions.reduce((sum, q) => sum + q.points, 0);
             questionCount.textContent = `${generatedQuestions.length} Questions`;
             totalPoints.textContent = `${totalPointsValue} Points`;
             
             let html = '';
             generatedQuestions.forEach((question, index) => {
-                html += `
-                    <div class="question-block mb-4 p-3" style="border: 2px solid #e9ecef; border-radius: 8px; background: #f8f9fa;">
-                        <div class="d-flex justify-content-between align-items-start mb-2">
-                            <h6 class="mb-0 text-primary">Question ${question.number}</h6>
-                            <div class="d-flex align-items-center gap-2">
-                                <label class="form-label mb-0 small">Points:</label>
-                                <input type="number" class="form-control form-control-sm" style="width:70px" 
-                                       value="${question.points}" min="0.5" step="0.5" 
-                                       onchange="updateQuestionPoints(${index}, this.value)">
-                            </div>
-                        </div>
-                        <div class="mb-3">
-                            <textarea class="form-control" rows="2" onchange="updateQuestionText(${index}, this.value)">${question.text}</textarea>
-                        </div>
-                        <div class="choices">
-                            ${question.choices.map((choice, choiceIndex) => `
-                                <div class="choice-item mb-2 d-flex align-items-center gap-2">
-                                    <span class="badge ${choice.isCorrect ? 'bg-success' : 'bg-secondary'}">${choice.letter}</span>
-                                    <input type="text" class="form-control" value="${choice.text}" 
-                                           onchange="updateChoiceText(${index}, ${choiceIndex}, this.value)">
-                                    <div class="form-check">
-                                        <input type="radio" class="form-check-input" name="correct_${index}"
-                                               ${choice.isCorrect ? 'checked' : ''}
-                                               onchange="updateCorrectAnswer(${index}, ${choiceIndex})">
-                                        <label class="form-check-label small">Correct</label>
-                                    </div>
-                                </div>
-                            `).join('')}
+                html += createQuestionHTML(question, index);
+            });
+            
+            questionsList.innerHTML = html;
+            
+            // Scroll to questions section
+            questionsSection.scrollIntoView({ behavior: 'smooth' });
+        }
+
+        function createQuestionHTML(question, index) {
+            return `
+                <div class="question-item" data-question-id="${question.id}">
+                    <div class="question-header">
+                        <span class="question-number">Question ${index + 1}</span>
+                        <div class="question-points">
+                            <label class="form-label mb-0 small">Points:</label>
+                            <input type="number" class="form-control form-control-sm" style="width:70px" 
+                                   value="${question.points}" min="0.5" step="0.5" 
+                                   onchange="updateQuestionPoints('${question.id}', this.value)">
                         </div>
                     </div>
-                `;
-            });
-            
-            questionsContainer.innerHTML = html;
-            questionsCard.style.display = 'block';
-            questionsCard.scrollIntoView({ behavior: 'smooth' });
+                    <textarea class="question-text" onchange="updateQuestionText('${question.id}', this.value)">${question.text}</textarea>
+                    <div class="choices-container">
+                        ${question.choices.map((choice, choiceIndex) => `
+                            <div class="choice-item">
+                                <span class="choice-letter ${choice.isCorrect ? 'correct' : 'incorrect'}">${choice.letter}</span>
+                                <input type="text" class="choice-text" value="${choice.text}" 
+                                       onchange="updateChoiceText('${question.id}', ${choiceIndex}, this.value)">
+                                <div class="correct-radio">
+                                    <input type="radio" name="correct_${question.id}" 
+                                           ${choice.isCorrect ? 'checked' : ''}
+                                           onchange="updateCorrectAnswer('${question.id}', ${choiceIndex})">
+                                    <label class="form-check-label small ms-1">Correct</label>
+                                </div>
+                            </div>
+                        `).join('')}
+                    </div>
+                    <div class="question-actions">
+                        <button type="button" class="btn btn-outline-danger btn-sm" onclick="deleteQuestion('${question.id}')">
+                            <i class="fe fe-trash-2"></i> Delete
+                        </button>
+                    </div>
+                </div>
+            `;
         }
 
-        function updateQuestionPoints(questionIndex, points) {
-            generatedQuestions[questionIndex].points = parseFloat(points) || 0;
-            updateTotalPoints();
-        }
-
-        function updateQuestionText(questionIndex, text) {
-            generatedQuestions[questionIndex].text = text;
-        }
-
-        function updateChoiceText(questionIndex, choiceIndex, text) {
-            generatedQuestions[questionIndex].choices[choiceIndex].text = text;
-        }
-
-        function updateCorrectAnswer(questionIndex, choiceIndex) {
-            // For multiple choice, only one can be correct
-            generatedQuestions[questionIndex].choices.forEach((choice, index) => {
-                choice.isCorrect = index === choiceIndex;
-            });
-            
-            // Update the visual badges
-            const questionBlock = event.target.closest('.question-block');
-            const badges = questionBlock.querySelectorAll('.badge');
-            badges.forEach((badge, index) => {
-                if (index === choiceIndex) {
-                    badge.className = 'badge bg-success';
-                } else {
-                    badge.className = 'badge bg-secondary';
-                }
-            });
-            
-            updateTotalPoints();
-        }
-
-        function updateTotalPoints() {
-            const total = generatedQuestions.reduce((sum, q) => sum + q.points, 0);
-            document.getElementById('totalPoints').textContent = `${total} Points`;
-        }
-
-        function regenerateQuiz() {
-            if (!confirm('Are you sure you want to regenerate the quiz? This will replace all current questions.')) {
-                return;
+        function updateQuestionPoints(questionId, points) {
+            const question = generatedQuestions.find(q => q.id === questionId);
+            if (question) {
+                question.points = parseFloat(points) || 0;
+                updateQuestionsDisplay();
             }
-            document.getElementById('questionsCard').style.display = 'none';
-            generateQuiz();
         }
 
-        async function saveQuiz() {
-            if (!generatedQuestions.length) {
-                alert('No questions to save');
+        function updateQuestionText(questionId, text) {
+            const question = generatedQuestions.find(q => q.id === questionId);
+            if (question) {
+                question.text = text;
+            }
+        }
+
+        function updateChoiceText(questionId, choiceIndex, text) {
+            const question = generatedQuestions.find(q => q.id === questionId);
+            if (question && question.choices[choiceIndex]) {
+                question.choices[choiceIndex].text = text;
+            }
+        }
+
+        function updateCorrectAnswer(questionId, choiceIndex) {
+            const question = generatedQuestions.find(q => q.id === questionId);
+            if (question) {
+                question.choices.forEach((choice, index) => {
+                    choice.isCorrect = index === choiceIndex;
+                });
+                
+                // Update the visual indicators
+                const questionElement = document.querySelector(`[data-question-id="${questionId}"]`);
+                const choiceLetters = questionElement.querySelectorAll('.choice-letter');
+                choiceLetters.forEach((letter, index) => {
+                    if (index === choiceIndex) {
+                        letter.className = 'choice-letter correct';
+                    } else {
+                        letter.className = 'choice-letter incorrect';
+                    }
+                });
+                
+                updateQuestionsDisplay();
+            }
+        }
+
+        function deleteQuestion(questionId) {
+            if (confirm('Are you sure you want to delete this question?')) {
+                generatedQuestions = generatedQuestions.filter(q => q.id !== questionId);
+                updateQuestionsDisplay();
+                showSuccessMessage('Question deleted successfully');
+            }
+        }
+
+        function clearAllQuestions() {
+            if (confirm('Are you sure you want to clear all generated questions?')) {
+                generatedQuestions = [];
+                updateQuestionsDisplay();
+                showSuccessMessage('All questions cleared');
+            }
+        }
+
+        async function saveQuizToDatabase() {
+            if (generatedQuestions.length === 0) {
+                showErrorMessage('No questions to save. Please generate some questions first.');
                 return;
             }
             
@@ -892,15 +1090,11 @@ $success = isset($_GET['success']) ? urldecode($_GET['success']) : '';
             );
             
             if (invalidQuestions.length > 0) {
-                alert(`Please select correct answers for all questions. Questions ${invalidQuestions.map(q => q.number).join(', ')} are missing correct answers.`);
+                showErrorMessage(`Please select correct answers for all questions. ${invalidQuestions.length} question(s) are missing correct answers.`);
                 return;
             }
             
-            const saveBtn = document.getElementById('saveBtn');
-            const saveSpinner = document.getElementById('saveSpinner');
-            
-            saveBtn.disabled = true;
-            saveSpinner.style.display = 'inline-block';
+            showLoading(true, 'Saving quiz to database...');
             
             try {
                 const payload = {
@@ -937,64 +1131,79 @@ $success = isset($_GET['success']) ? urldecode($_GET['success']) : '';
                 const data = await response.json();
                 
                 if (data.success) {
-                    alert('Quiz saved successfully!');
-                    window.location.href = 'quiz_list.php?success=' + encodeURIComponent(data.message);
+                    showSuccessMessage('Quiz saved successfully!');
+                    setTimeout(() => {
+                        window.location.href = 'quiz_list.php?success=' + encodeURIComponent(data.message);
+                    }, 2000);
                 } else {
                     throw new Error(data.error || 'Save failed');
                 }
                 
             } catch (error) {
                 console.error('Save error:', error);
-                alert('Error saving quiz: ' + error.message);
+                showErrorMessage('Error saving quiz: ' + error.message);
             } finally {
-                saveBtn.disabled = false;
-                saveSpinner.style.display = 'none';
+                showLoading(false);
             }
         }
 
-        function displayQuestions() {
-    const container = document.getElementById('questionsContainer');
-    container.innerHTML = '';
+        function showLoading(show, message = 'Generating Questions...') {
+            const overlay = document.getElementById('loadingOverlay');
+            const loadingContent = overlay.querySelector('.loading-content h5');
+            
+            if (show) {
+                loadingContent.textContent = message;
+                overlay.style.display = 'flex';
+            } else {
+                overlay.style.display = 'none';
+            }
+        }
 
-    generatedQuestions.forEach((q, index) => {
-        const div = document.createElement('div');
-        div.className = 'question-block mb-3 p-3 border rounded bg-light';
-        div.innerHTML = `
-            <div class="d-flex justify-content-between align-items-start mb-2">
-                <strong>Question ${index + 1}</strong>
-                <div>
-                    <label class="me-2">Points:</label>
-                    <input type="number" class="form-control form-control-sm d-inline-block" style="width:80px" value="${q.points}" onchange="updateQuestionPoints(${index}, this.value)">
-                    <button class="btn btn-sm btn-outline-danger ms-2" onclick="deleteQuestion(${index})"><i class="fe fe-trash"></i></button>
+        function showSuccessMessage(message) {
+            // Create and show success alert
+            const alertHtml = `
+                <div class="alert alert-success alert-dismissible fade show" role="alert">
+                    <i class="fe fe-check-circle me-2"></i>${message}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
                 </div>
-            </div>
-            <textarea class="form-control mb-2" rows="2" onchange="updateQuestionText(${index}, this.value)">${q.text}</textarea>
-            <div class="choices">
-                ${q.choices.map((c, i) => `
-                    <div class="choice-item mb-1 d-flex align-items-center gap-2">
-                        <span class="badge ${c.isCorrect ? 'bg-success' : 'bg-secondary'}">${c.letter}</span>
-                        <input type="text" class="form-control" value="${c.text}" onchange="updateChoiceText(${index}, ${i}, this.value)">
-                        <div class="form-check">
-                            <input type="radio" class="form-check-input" name="correct_${index}" ${c.isCorrect ? 'checked' : ''} onchange="updateCorrectAnswer(${index}, ${i})">
-                            <label class="form-check-label small">Correct</label>
-                        </div>
-                    </div>
-                `).join('')}
-            </div>
-        `;
-        container.appendChild(div);
-    }
+            `;
+            const container = document.querySelector('.container-fluid .row .col-12');
+            const firstCard = container.querySelector('.card');
+            firstCard.insertAdjacentHTML('beforebegin', alertHtml);
+            
+            // Auto-dismiss after 5 seconds
+            setTimeout(() => {
+                const alert = container.querySelector('.alert-success');
+                if (alert) alert.remove();
+            }, 5000);
+        }
 
-    document.getElementById('questionsCard').style.display = 'block';
-    updateTotalPoints();
-}
+        function showErrorMessage(message) {
+            // Create and show error alert
+            const alertHtml = `
+                <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                    <i class="fe fe-alert-circle me-2"></i>${message}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                </div>
+            `;
+            const container = document.querySelector('.container-fluid .row .col-12');
+            const firstCard = container.querySelector('.card');
+            firstCard.insertAdjacentHTML('beforebegin', alertHtml);
+            
+            // Auto-dismiss after 8 seconds
+            setTimeout(() => {
+                const alert = container.querySelector('.alert-danger');
+                if (alert) alert.remove();
+            }, 8000);
+        }
 
-function deleteQuestion(index) {
-    if (confirm('Delete this question?')) {
-        generatedQuestions.splice(index, 1);
-        displayQuestions();
-    }
-}
+        // Initialize on page load
+        window.addEventListener('load', function() {
+            // Set minimum date for deadline to current date
+            const now = new Date();
+            const minDate = now.toISOString().slice(0, 16);
+            document.getElementById('quizDeadline').setAttribute('min', minDate);
+        });
     </script>
 </body>
 </html>
